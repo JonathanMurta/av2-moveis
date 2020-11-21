@@ -1,6 +1,6 @@
 import React, {useState, useContext, useEffect} from 'react';
 import {Text} from 'react-native';
-import {Container, Texto, ContainerGroupsUser, ButtonArea} from './styles';
+import {Container, Texto, ContainerGroupsUser, ButtonArea, ButtonAbsolutePlus, ContainerSelectGroups, TextoSelectGroups, ContainerGroupsUserSelectGroups, ButtonAreaSelectGroups} from './styles';
 import Chat from '../Chat'
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -15,15 +15,49 @@ const Groups = ({navigation}) =>
 {
     const {user} = useContext(UsuarioContext);
     const [groups, setGroups] = useState(['']);
-    // const selectGroup = false
+
+    useEffect(() =>
+    {
+        const listener = firebase.firestore().collection('myGroups').onSnapshot((snap) =>
+        {
+            snap.docs.map(doc =>
+            {
+                firebase.firestore().collection('groups').where('id', '==', doc.data().idGroup).onSnapshot((snap) =>
+                {
+                    const data = snap.docs.map(doc =>
+                    {
+                        return {
+                            id: doc.id,
+                            ... doc.data()
+                        }
+                    })
+
+                    setGroups(data);
+                })
+            })
+        })
+
+        return () => listener()
+    }, [])
     
-    // firebase.firestore().collection("groupsUser").where('user', '==', user.email).get()
-    // .then((querySnapshot) => {
-    //     querySnapshot.forEach(function(doc) {
-    //         console.warn(doc.id, " => ", doc.data());
-            
-    //     });
-    // })
+    return (
+        <Container>
+            {groups.map(groups => (
+                <ContainerGroupsUser style={{ backgroundColor: groups.color}} >
+                    <ButtonArea onPress={() => {navigation.navigate('Chat', {group: groups.id})}}>
+                        <Texto>{groups.name}</Texto>
+                    </ButtonArea>
+                </ContainerGroupsUser>
+            ))}
+            <ButtonAbsolutePlus onPress={() => {navigation.navigate('Selecionar Grupos')}}>+</ButtonAbsolutePlus>
+        </Container>
+    )
+}
+
+const SelectGroups = () =>
+{
+    const {user} = useContext(UsuarioContext);
+    const [groups, setGroups] = useState(['']);
 
     useEffect(() =>
     {
@@ -43,22 +77,33 @@ const Groups = ({navigation}) =>
         return () => listener()
     }, [])
 
-    // const enterGroup = (idGroup) =>
-    // {
-    //     console.warn(idGroup)
-    // }
+    const addGroup = (group) =>
+    {
+        firebase.firestore().collection('myGroups').where('user', '==', user.email).where('idGroup', '==', group).get().then(snap =>
+        {
+            if(!snap.empty)
+                console.warn("Você já está nesse grupo!")
+            else
+            {
+                firebase.firestore().collection('myGroups').add({
+                    idGroup: group,
+                    user: user.email
+                })
+                console.warn("Grupo adicionado!")
+            }
+        })
+    }
     
     return (
-        <Container>
-            {/* <Texto>{user.email}</Texto> */}
+        <ContainerSelectGroups>
             {groups.map(groups => (
-                <ContainerGroupsUser style={{ backgroundColor: groups.color}} >
-                    <ButtonArea onPress={() => {navigation.navigate('Chat', {group: groups.id})}}>
-                        <Texto>{groups.name}</Texto>
-                    </ButtonArea>
-                </ContainerGroupsUser>
+                <ContainerGroupsUserSelectGroups style={{ backgroundColor: groups.color}} >
+                    <ButtonAreaSelectGroups onPress={() => {addGroup(groups.id)}}>
+                        <TextoSelectGroups>{groups.name}</TextoSelectGroups>
+                    </ButtonAreaSelectGroups>
+                </ContainerGroupsUserSelectGroups>
             ))}
-        </Container>
+        </ContainerSelectGroups>
     )
 }
 
@@ -72,6 +117,7 @@ export default () =>
         <Stack.Navigator>
             <Stack.Screen name="Grupos" component={Groups} />
             <Stack.Screen name="Chat" component={Chat} />
+            <Stack.Screen name="Selecionar Grupos" component={SelectGroups} />
         </Stack.Navigator>
     )    
 }

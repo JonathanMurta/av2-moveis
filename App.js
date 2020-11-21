@@ -1,3 +1,4 @@
+/* Jonathan Murta - 2016201065 */
 import 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
