@@ -18,22 +18,19 @@ const Groups = ({navigation}) =>
 
     useEffect(() =>
     {
-        const listener = firebase.firestore().collection('myGroups').onSnapshot((snap) =>
+        const listener = firebase.firestore().collection('myGroups').where('user', '==', user.email).onSnapshot((snap) =>
         {
             snap.docs.map(doc =>
             {
-                firebase.firestore().collection('groups').where('id', '==', doc.data().idGroup).onSnapshot((snap) =>
+                const data = snap.docs.map(doc =>
                 {
-                    const data = snap.docs.map(doc =>
-                    {
-                        return {
-                            id: doc.id,
-                            ... doc.data()
-                        }
-                    })
-
-                    setGroups(data);
+                    return {
+                        id: doc.id,
+                        ... doc.data()
+                    }
                 })
+
+                setGroups(data);
             })
         })
 
@@ -44,8 +41,8 @@ const Groups = ({navigation}) =>
         <Container>
             {groups.map(groups => (
                 <ContainerGroupsUser style={{ backgroundColor: groups.color}} >
-                    <ButtonArea onPress={() => {navigation.navigate('Chat', {group: groups.id})}}>
-                        <Texto>{groups.name}</Texto>
+                    <ButtonArea onPress={() => {navigation.navigate('Chat', {group: groups.idGroup})}}>
+                        <Texto>{groups.groupName}</Texto>
                     </ButtonArea>
                 </ContainerGroupsUser>
             ))}
@@ -79,15 +76,17 @@ const SelectGroups = () =>
 
     const addGroup = (group) =>
     {
-        firebase.firestore().collection('myGroups').where('user', '==', user.email).where('idGroup', '==', group).get().then(snap =>
+        firebase.firestore().collection('myGroups').where('user', '==', user.email).where('idGroup', '==', group.id).get().then(snap =>
         {
             if(!snap.empty)
                 console.warn("Você já está nesse grupo!")
             else
             {
                 firebase.firestore().collection('myGroups').add({
-                    idGroup: group,
-                    user: user.email
+                    idGroup: group.id,
+                    user: user.email,
+                    color: group.color,
+                    groupName: group.name
                 })
                 console.warn("Grupo adicionado!")
             }
@@ -98,7 +97,7 @@ const SelectGroups = () =>
         <ContainerSelectGroups>
             {groups.map(groups => (
                 <ContainerGroupsUserSelectGroups style={{ backgroundColor: groups.color}} >
-                    <ButtonAreaSelectGroups onPress={() => {addGroup(groups.id)}}>
+                    <ButtonAreaSelectGroups onPress={() => {addGroup(groups)}}>
                         <TextoSelectGroups>{groups.name}</TextoSelectGroups>
                     </ButtonAreaSelectGroups>
                 </ContainerGroupsUserSelectGroups>
